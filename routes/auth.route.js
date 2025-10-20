@@ -1,11 +1,10 @@
 import express from "express";
+import signup from "../controllers/signup.controller.js";
 
 const router = express.Router();
 
 // Signup page
-router.get("/signup", (req, res) => {
-  res.send("Signup page");
-});
+router.post("/signup", signup);
 
 // Login page
 router.get("/login", (req, res) => {
