@@ -15,7 +15,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors());
-app.use(express.json()) // for collecting the request's body (req.body) of requests that come in that are formatted in JSON
+app.use(express.json()); // for collecting the request's body (req.body) of requests that come in that are formatted in JSON
 
 // Routes or views
 app.use("/api/auth", auth_router);
