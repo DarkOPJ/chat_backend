@@ -4,6 +4,10 @@ import { generate_and_send_jwt } from "../lib/utils.js";
 
 const signup = async (req, res) => {
   const { full_name, email, password } = req.body;
+  const processed_full_name = typeof email === "string" ? email.trim() : "";
+  const processed_email =
+    typeof email === "string" ? email.trim().toLowerCase() : "";
+  const processed_password = typeof password === "string" ? password : "";
 
   try {
     if (!full_name || !email || !password) {
@@ -50,7 +54,7 @@ const signup = async (req, res) => {
     if (new_user) {
       generate_and_send_jwt(new_user._id, res);
 
-    //   TODO: Send a welcome email to the user
+      //   TODO: Send a welcome email to the user
 
       return res.status(201).json({
         _id: new_user._id,
