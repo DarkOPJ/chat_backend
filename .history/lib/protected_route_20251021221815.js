@@ -1,0 +1,1 @@
+const protected_route = (req, res)
