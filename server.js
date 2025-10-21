@@ -18,7 +18,7 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(cookieParser);
+app.use(cookieParser());
 app.use(express.json()); // for collecting the request's body (req.body) of requests that come in that are formatted in JSON
 app.set("trust proxy", 1); // for getting the right ip the request is coming from.. mostly for rate limiting
 
