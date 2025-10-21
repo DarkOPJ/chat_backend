@@ -80,9 +80,77 @@ const signup = async (req, res) => {
       return res.status(400).json({ message: "Invalid user data." });
     }
   } catch (error) {
-    console.log("Something went wrong with the user Signu Up.");
+    console.log("Something went wrong with the user Signu Up: ", error);
     return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-export default signup;
+const login = async (req, res) => {
+  const { email, password } = req.body;
+  const processed_email =
+    typeof email === "string" ? email.trim().toLowerCase() : "";
+  const processed_password = typeof password === "string" ? password : "";
+
+  // Dummy hash to prevent timing differences when user not found
+  const dummyHash =
+    "$2b$10$C9y5EXAMPLEaDummyHashStringe0QWfL9WvslFSk0L6KzZgVkk9hu";
+
+  try {
+    if (!processed_email || !processed_password) {
+      return res.status(200).json({ message: "Invalid email or password." });
+    }
+
+    const email_regex =
+      /^(?=.{1,254}$)(?=.{1,64}@)[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!email_regex.test(processed_email)) {
+      return res.status(200).json({ message: "Invalid email or password." });
+    }
+
+    const password_regex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,64}$/;
+    if (!password_regex.test(processed_password)) {
+      return res.status(200).json({ message: "Invalid email or password." });
+    }
+
+    const existing_user = await User.findOne({ email: processed_email });
+
+    // Always call bcrypt.compare with *some* hash
+    const hash_to_compare = existing_user ? existing_user.password : dummyHash;
+
+    const password_check = await bcrypt.compare(
+      processed_password,
+      hash_to_compare
+    );
+
+     // Add a small fixed delay (e.g., 300–500 ms)
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Return same response message to avoid user enumeration
+    if (!existing_user || !password_check) {
+      return res.status(200).json({ message: "Invalid email or password." });
+    }
+
+    generate_and_send_jwt(existing_user._id, res);
+    return res.status(200).json({
+      full_name: existing_user.full_name,
+      email: existing_user.email,
+      profile_pic: existing_user.profile_pic,
+    });
+  } catch (error) {
+    console.log("Something went wrong with the user Login: ", error);
+    return res.status(500).json({ message: "Internal Server Error." });
+  }
+};
+
+
+const logout = (req, res) => {
+  const cookie_options = {
+    sameSite: "strict",
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== "development",
+  };
+  res.clearCookie("jwt", cookie_options);
+  return res.status(200).json({ message: "Logged out successfully." });
+};
+
+export { signup, login, logout };
