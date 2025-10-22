@@ -122,7 +122,7 @@ const login = async (req, res) => {
       hash_to_compare
     );
 
-     // Add a small fixed delay (e.g., 300–500 ms)
+    // Add a small fixed delay (e.g., 300–500 ms)
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     // Return same response message to avoid user enumeration
@@ -142,7 +142,6 @@ const login = async (req, res) => {
   }
 };
 
-
 const logout = (req, res) => {
   const cookie_options = {
     sameSite: "strict",
@@ -153,4 +152,8 @@ const logout = (req, res) => {
   return res.status(200).json({ message: "Logged out successfully." });
 };
 
-export { signup, login, logout };
+const auth_check = (req, res) => {
+  return res.status(200).json(req.user);
+};
+
+export { signup, login, logout, auth_check };

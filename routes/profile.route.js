@@ -4,6 +4,6 @@ import protected_route from "../middleware/protected_route.js";
 
 const router = express.Router()
 
-router.get("/update", protected_route, update_profile)
+router.post("/update", protected_route, update_profile)
 
 export default router

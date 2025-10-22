@@ -1,6 +1,15 @@
 import express from "express";
-import { login, logout, signup } from "../controllers/auth.controller.js";
-import { login_rate_limit, signup_rate_limit } from "../middleware/ip_rate_limit.js";
+import {
+  auth_check,
+  login,
+  logout,
+  signup,
+} from "../controllers/auth.controller.js";
+import {
+  login_rate_limit,
+  signup_rate_limit,
+} from "../middleware/ip_rate_limit.js";
+import protected_route from "../middleware/protected_route.js";
 
 const router = express.Router();
 
@@ -12,5 +21,8 @@ router.post("/login", login_rate_limit, login);
 
 // Logout page
 router.post("/logout", logout);
+
+// Check if user is. authenticated
+router.get("/check", protected_route, auth_check);
 
 export default router;
