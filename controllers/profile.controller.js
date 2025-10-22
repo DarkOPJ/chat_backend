@@ -17,10 +17,9 @@ const update_profile = async (req, res) => {
       user_id,
       { profile_pic: uploaded_image.secure_url },
       { new: true }
-    );
+    ).select("-password");
 
     return res.status(200).json(updated_user);
-    
   } catch (error) {
     console.log("Something went wrong with the user Profile Update: ", error);
     return res.status(500).json({ message: "Internal server error." });
