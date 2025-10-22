@@ -32,9 +32,9 @@ const PORT = process.env.PORT || 3000;
 
 connectDB();
 
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 // for vercel
-export default app
+// export default app
