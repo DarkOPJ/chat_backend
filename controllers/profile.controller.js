@@ -1,5 +1,5 @@
-import cloudinary from "../lib/cloudinary";
-import User from "../models/User";
+import cloudinary from "../lib/cloudinary.js";
+import User from "../models/User.js";
 
 const update_profile = async (req, res) => {
   const { profile_pic } = req.body;
