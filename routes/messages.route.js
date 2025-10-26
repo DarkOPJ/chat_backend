@@ -1,11 +1,19 @@
 import express from "express";
+import protected_route from "../middleware/protected_route.js";
+import {
+  get_all_user_chats,
+  get_all_contacts,
+  get_messages_by_id,
+  send_message,
+} from "../controllers/messages.controller.js";
+import arcjet_protection from "../middleware/arcjet.middleware.js";
 
 const router = express.Router();
-
-router.get("/send", (req, res) => {
-  res.send("This is a message");
-});
-
-// You can add more routes here, e.g., POST to create a message
+// arcjet_protection
+router.use(protected_route);
+router.get("/contacts", get_all_contacts);
+router.get("/chats", get_all_user_chats);
+router.get("/:id", get_messages_by_id);
+router.post("/send/:id", send_message);
 
 export default router;

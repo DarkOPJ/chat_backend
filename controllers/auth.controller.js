@@ -1,10 +1,8 @@
 import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
 import User from "../models/User.js";
+import ENV from "../lib/env.js";
 import { generate_and_send_jwt } from "../lib/utils.js";
 import { send_welcome_email } from "../emails/email_handlers.js";
-
-dotenv.config();
 
 const signup = async (req, res) => {
   const { full_name, email, password } = req.body;
@@ -60,15 +58,15 @@ const signup = async (req, res) => {
       generate_and_send_jwt(new_user._id, res);
 
       //   TODO: Send a welcome email to the user
-      try {
-        await send_welcome_email(
-          new_user.email,
-          new_user.full_name,
-          process.env.CLIENT_URL
-        );
-      } catch (error) {
-        console.log("There was an error sending the email: ", error);
-      }
+      // try {
+      //   await send_welcome_email(
+      //     new_user.email,
+      //     new_user.full_name,
+      //     ENV.CLIENT_URL
+      //   );
+      // } catch (error) {
+      //   console.log("There was an error sending the email: ", error);
+      // }
 
       return res.status(201).json({
         _id: new_user._id,
@@ -131,6 +129,7 @@ const login = async (req, res) => {
     }
 
     generate_and_send_jwt(existing_user._id, res);
+
     return res.status(200).json({
       full_name: existing_user.full_name,
       email: existing_user.email,
@@ -138,7 +137,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.log("Something went wrong with the user Login: ", error);
-    return res.status(500).json({ message: "Internal Server Error." });
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
@@ -146,7 +145,7 @@ const logout = (req, res) => {
   const cookie_options = {
     sameSite: "strict",
     httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
+    secure: ENV.NODE_ENV !== "development",
   };
   res.clearCookie("jwt", cookie_options);
   return res.status(200).json({ message: "Logged out successfully." });
