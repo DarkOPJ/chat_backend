@@ -4,6 +4,7 @@ import {
   login,
   logout,
   signup,
+  check_name_and_email
 } from "../controllers/auth.controller.js";
 import {
   login_rate_limit,
@@ -14,6 +15,7 @@ import protected_route from "../middleware/protected_route.js";
 const router = express.Router();
 
 // Signup page
+router.post("/signup_check", signup_rate_limit, check_name_and_email);
 router.post("/signup", signup_rate_limit, signup);
 
 // Login page

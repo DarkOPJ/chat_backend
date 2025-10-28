@@ -4,6 +4,42 @@ import ENV from "../lib/env.js";
 import { generate_and_send_jwt } from "../lib/utils.js";
 import { send_welcome_email } from "../emails/email_handlers.js";
 
+const check_name_and_email = async (req, res) => {
+  const { full_name, email } = req.body;
+  const processed_full_name =
+    typeof full_name === "string" ? full_name.trim() : "";
+  const processed_email =
+    typeof email === "string" ? email.trim().toLowerCase() : "";
+
+  try {
+    if (!processed_full_name || !processed_email) {
+      // Always remember to send the status before the sending the json else it won't work
+      // for this place the status code is fine since it cant be used to figure out anything in the db or app
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const email_regex =
+      /^(?=.{1,254}$)(?=.{1,64}@)[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!email_regex.test(processed_email)) {
+      return res.status(400).json({ message: "Invalid email format." });
+    }
+
+    // If a user already exists send a generic message like "Unable to process your signup request. Please verify your information and try again."
+    // Then send an email to the person whose email is being used to signup “If you tried to sign up, ignore this. If not, someone attempted to register using your email.”
+    const existing_user = await User.findOne({ email: processed_email });
+    if (existing_user) {
+      return res.status(400).json({
+        message:
+          "Unable to process your signup request. Please verify your information and try again.",
+      });
+    }
+
+    return res.status(200).json({ message: "Valid new user." });
+  } catch (error) {
+    console.log("Something went wrong with the user Signu Up: ", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
 const signup = async (req, res) => {
   const { full_name, email, password } = req.body;
   const processed_full_name =
@@ -155,4 +191,4 @@ const auth_check = (req, res) => {
   return res.status(200).json(req.user);
 };
 
-export { signup, login, logout, auth_check };
+export { check_name_and_email, signup, login, logout, auth_check };

@@ -16,7 +16,12 @@ const app = express();
 
 // Middleware
 app.set("trust proxy", 1); // for getting the right ip the request is coming from.. mostly for rate limiting
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:4000", // must be explicit, no '*'
+    credentials: true, // must match axios withCredentials:true
+  })
+);
 app.use(cookieParser());
 app.use(express.json()); // for collecting the request's body (req.body) of requests that come in that are formatted in JSON
 // if (ENV.NODE_ENV !== "development") {
