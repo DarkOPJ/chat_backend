@@ -1,5 +1,6 @@
 import aj from "../lib/arcjet.js";
 import { isSpoofedBot } from "@arcjet/inspect";
+import ENV from "../lib/env.js";
 
 const arcjet_protection = async (req, res, next) => {
   try {
@@ -10,7 +11,11 @@ const arcjet_protection = async (req, res, next) => {
           .status(429)
           .json({ message: "Too many requests. Try again later." });
       } else if (decision.reason.isBot()) {
-        res.status(403).json({ message: "Bots are not allowed." });
+        // TODO: This is for testing with postman. Remember to remove.
+        ENV.NODE_ENV === "development"
+          ? next()
+          : res.status(403).json({ message: "Bots are not allowed." });
+        // res.status(403).json({ message: "Bots are not allowed." });
       } else {
         res.status(403).json({ message: "Access denied by security policy." });
       }
