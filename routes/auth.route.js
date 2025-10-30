@@ -4,7 +4,8 @@ import {
   login,
   logout,
   signup,
-  check_name_and_email
+  check_name_and_email,
+  check_email
 } from "../controllers/auth.controller.js";
 import {
   login_rate_limit,
@@ -19,6 +20,7 @@ router.post("/signup_check", signup_rate_limit, check_name_and_email);
 router.post("/signup", signup_rate_limit, signup);
 
 // Login page
+router.post("/login_check", login_rate_limit, check_email);
 router.post("/login", login_rate_limit, login);
 
 // Logout page

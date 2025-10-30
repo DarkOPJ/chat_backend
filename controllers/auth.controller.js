@@ -36,7 +36,10 @@ const check_name_and_email = async (req, res) => {
 
     return res.status(200).json({ message: "Valid new user." });
   } catch (error) {
-    console.log("Something went wrong with the user Signu Up: ", error);
+    console.log(
+      "Something went wrong with the user Signup name and email check: ",
+      error
+    );
     return res.status(500).json({ message: "Internal server error." });
   }
 };
@@ -119,7 +122,42 @@ const signup = async (req, res) => {
   }
 };
 
+const check_email = async (req, res) => {
+  const { email } = req.body;
+  const processed_email =
+    typeof email === "string" ? email.trim().toLowerCase() : "";
+
+  try {
+    if (!processed_email) {
+      // Always remember to send the status before the sending the json else it won't work
+      // for this place the status code is fine since it cant be used to figure out anything in the db or app
+      return res.status(400).json({ message: "An email is required." });
+    }
+
+    const email_regex =
+      /^(?=.{1,254}$)(?=.{1,64}@)[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!email_regex.test(processed_email)) {
+      return res.status(400).json({ message: "Invalid email format." });
+    }
+
+    // If a user already exists send a generic message like "Unable to process your signup request. Please verify your information and try again."
+    // Then send an email to the person whose email is being used to signup “If you tried to sign up, ignore this. If not, someone attempted to register using your email.”
+    const existing_user = await User.findOne({ email: processed_email });
+    if (!existing_user) {
+      return res.status(400).json({
+        message:
+          "Unable to process your login request. Please verify your information and try again.",
+      });
+    }
+
+    return res.status(200).json({ message: "Valid existing user." });
+  } catch (error) {
+    console.log("Something went wrong with the user Login check: ", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
 const login = async (req, res) => {
+  console.log("Hitting the login");
   const { email, password } = req.body;
   const processed_email =
     typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -131,19 +169,25 @@ const login = async (req, res) => {
 
   try {
     if (!processed_email || !processed_password) {
-      return res.status(200).json({ message: "Invalid email or password." });
+      return res
+        .status(200)
+        .json({ success: false, message: "Invalid email or password." });
     }
 
     const email_regex =
       /^(?=.{1,254}$)(?=.{1,64}@)[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     if (!email_regex.test(processed_email)) {
-      return res.status(200).json({ message: "Invalid email or password." });
+      return res
+        .status(200)
+        .json({ success: false, message: "Invalid email or password." });
     }
 
     const password_regex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,64}$/;
     if (!password_regex.test(processed_password)) {
-      return res.status(200).json({ message: "Invalid email or password." });
+      return res
+        .status(200)
+        .json({ success: false, message: "Invalid email or password." });
     }
 
     const existing_user = await User.findOne({ email: processed_email });
@@ -161,16 +205,21 @@ const login = async (req, res) => {
 
     // Return same response message to avoid user enumeration
     if (!existing_user || !password_check) {
-      return res.status(200).json({ message: "Invalid email or password." });
+      return res
+        .status(200)
+        .json({ success: false, message: "Invalid email or password." });
     }
 
     generate_and_send_jwt(existing_user._id, res);
 
-    return res.status(200).json({
-      full_name: existing_user.full_name,
-      email: existing_user.email,
-      profile_pic: existing_user.profile_pic,
-    });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        full_name: existing_user.full_name,
+        email: existing_user.email,
+        profile_pic: existing_user.profile_pic,
+      });
   } catch (error) {
     console.log("Something went wrong with the user Login: ", error);
     return res.status(500).json({ message: "Internal server error." });
@@ -191,4 +240,4 @@ const auth_check = (req, res) => {
   return res.status(200).json(req.user);
 };
 
-export { check_name_and_email, signup, login, logout, auth_check };
+export { check_name_and_email, signup, check_email, login, logout, auth_check };
