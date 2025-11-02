@@ -157,7 +157,6 @@ const check_email = async (req, res) => {
   }
 };
 const login = async (req, res) => {
-  console.log("Hitting the login");
   const { email, password } = req.body;
   const processed_email =
     typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -212,14 +211,12 @@ const login = async (req, res) => {
 
     generate_and_send_jwt(existing_user._id, res);
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        full_name: existing_user.full_name,
-        email: existing_user.email,
-        profile_pic: existing_user.profile_pic,
-      });
+    return res.status(200).json({
+      success: true,
+      full_name: existing_user.full_name,
+      email: existing_user.email,
+      profile_pic: existing_user.profile_pic,
+    });
   } catch (error) {
     console.log("Something went wrong with the user Login: ", error);
     return res.status(500).json({ message: "Internal server error." });

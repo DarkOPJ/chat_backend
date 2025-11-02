@@ -18,7 +18,7 @@ const app = express();
 app.set("trust proxy", 1); // for getting the right ip the request is coming from.. mostly for rate limiting
 app.use(
   cors({
-    origin: "http://localhost:4000", // must be explicit, no '*'
+    origin: ["http://localhost:4000", "http://192.168.100.88:4000"], // must be explicit, no '*'
     credentials: true, // must match axios withCredentials:true
   })
 );
