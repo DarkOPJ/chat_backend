@@ -18,6 +18,12 @@ const check_name_and_email = async (req, res) => {
       return res.status(400).json({ message: "All fields are required." });
     }
 
+    // const full_name_regex = /^[A-Za-z'-]+(?:\s[A-Za-z'-]+)+$/;
+    const full_name_regex = /^[\p{L}\p{N}' \-\p{Emoji}\p{Emoji_Component}]+$/u;
+    if (!full_name_regex.test(processed_full_name)) {
+      return res.status(400).json({ message: "Invalid name format." });
+    }
+
     const email_regex =
       /^(?=.{1,254}$)(?=.{1,64}@)[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     if (!email_regex.test(processed_email)) {
@@ -56,6 +62,12 @@ const signup = async (req, res) => {
       // Always remember to send the status before the sending the json else it won't work
       // for this place the status code is fine since it cant be used to figure out anything in the db or app
       return res.status(400).json({ message: "All fields are required." });
+    }
+
+    // allow hyphens and apostrophes inside names, but only require a space to separate multiple name parts
+    const full_name_regex = /^[\p{L}\p{N}' \-\p{Emoji}\p{Emoji_Component}]+$/u;
+    if (!full_name_regex.test(processed_full_name)) {
+      return res.status(400).json({ message: "Invalid name format." });
     }
 
     const email_regex =
@@ -215,7 +227,10 @@ const login = async (req, res) => {
       success: true,
       full_name: existing_user.full_name,
       email: existing_user.email,
+      bio: existing_user.bio,
       profile_pic: existing_user.profile_pic,
+      profile_pic_public_id: existing_user.profile_pic_public_id,
+      username: existing_user.username,
     });
   } catch (error) {
     console.log("Something went wrong with the user Login: ", error);

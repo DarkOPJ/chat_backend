@@ -6,15 +6,29 @@ import cloudinary from "../lib/cloudinary.js";
 const get_all_contacts = async (req, res) => {
   try {
     const logged_in_user = req.user._id;
-    const users = await User.find({
-      _id: {
-        $ne: logged_in_user,
-      },
+
+    const filtered_chats = await Message.find({
+      $or: [{ sender_id: logged_in_user }, { receiver_id: logged_in_user }],
     }).select("-password");
-    return res.status(200).json(users);
+
+    const chats = [
+      ...new Set(
+        filtered_chats.map((chat) =>
+          chat.sender_id.toString() === logged_in_user.toString()
+            ? chat.receiver_id.toString()
+            : chat.sender_id.toString()
+        )
+      ),
+    ];
+
+    const contacts_without_chat_partners = await User.find({
+      _id: { $nin: chats, $ne: logged_in_user }, // users who i have not chat with before and excluding myself
+    }).select("-password -profile_pic_public_id");
+
+    return res.status(200).json(contacts_without_chat_partners);
   } catch (error) {
     console.log(
-      "There was an error with the Get all chats controller: ",
+      "There was an error with the Get all contacts controller: ",
       error
     );
     res.status(500).json({ message: "Internal server error." });
@@ -40,7 +54,7 @@ const get_all_user_chats = async (req, res) => {
 
     const user_chat_partners = await User.find({
       _id: { $in: chats },
-    }).select("-password");
+    }).select("-password -profile_pic_public_id");
     return res.status(200).json(user_chat_partners);
   } catch (error) {
     console.log(
