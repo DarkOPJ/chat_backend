@@ -9,6 +9,7 @@ import {
   deleteFromCloudinary,
 } from "../lib/utils.js";
 
+// Image property constants
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB.
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
 const MAX_DIMENSION = 4096; // max width/height.
@@ -20,11 +21,11 @@ const update_profile_pic = async (req, res) => {
 
     // Authentication check
     if (!user_id) {
-      return res.status(401).json({ message: "Unauthorized access" });
+      return res.status(401).json({ message: "Unauthorized access." });
     }
 
     if (!profile_pic) {
-      return res.status(400).json({ message: "Profile picture is required" });
+      return res.status(400).json({ message: "Profile picture is required." });
     }
 
     // Parse data URI
@@ -32,7 +33,9 @@ const update_profile_pic = async (req, res) => {
     try {
       parsedData = parseDataUri(profile_pic);
     } catch (error) {
-      return res.status(400).json({ message: error.message });
+      return res
+        .status(400)
+        .json({ message: "There was an error parsing the image." });
     }
 
     // Check estimated size before decoding
@@ -50,7 +53,9 @@ const update_profile_pic = async (req, res) => {
     try {
       buffer = decodeBase64(parsedData.base64Data);
     } catch (error) {
-      return res.status(400).json({ message: error.message });
+      return res
+        .status(400)
+        .json({ message: "There was an error decoding image." });
     }
 
     // Verify actual buffer size
@@ -68,7 +73,7 @@ const update_profile_pic = async (req, res) => {
 
     if (!detectedMime || !ALLOWED_TYPES.includes(detectedMime)) {
       return res.status(415).json({
-        message: "Unsupported file type. Only PNG and JPEG images are allowed",
+        message: "Unsupported file type. Only PNG and JPEG images are allowed.",
       });
     }
 
@@ -79,17 +84,17 @@ const update_profile_pic = async (req, res) => {
     } catch (error) {
       console.error("Sharp metadata error:", error);
       return res.status(400).json({
-        message: "Invalid or corrupted image file",
+        message: "Invalid or corrupted image file.",
       });
     }
     if (!metadata?.width || !metadata?.height) {
       return res.status(400).json({
-        message: "Could not determine image dimensions",
+        message: "Could not determine image dimensions.",
       });
     }
     if (metadata.width > MAX_DIMENSION || metadata.height > MAX_DIMENSION) {
       return res.status(413).json({
-        message: `Image dimensions too large. Maximum is ${MAX_DIMENSION}x${MAX_DIMENSION}px`,
+        message: `Image dimensions too large. Maximum is ${MAX_DIMENSION}x${MAX_DIMENSION}px.`,
       });
     }
 
@@ -101,7 +106,7 @@ const update_profile_pic = async (req, res) => {
       );
       uploadResult = await uploadToCloudinary(buffer, {
         folder: "profiles",
-        public_id: `user_${user_id}_${Date.now()}`, // Unique identifier
+        public_id: `user_${user_id}_profile_pic_${Date.now()}`, // Unique identifier
       });
     } catch (error) {
       console.error("Upload error:", error);
@@ -156,7 +161,7 @@ const delete_profile_pic = async (req, res) => {
           user.profile_pic_public_id
         );
       } else {
-        console.warn("Cloudinary deletion returned:", deleteResult);
+        console.log("Cloudinary deletion returned:", deleteResult);
         // Continue anyway - we'll clear DB reference
       }
     }
@@ -166,13 +171,13 @@ const delete_profile_pic = async (req, res) => {
       profile_pic_public_id: "",
     };
 
-    const updatedUser = await User.findByIdAndUpdate(user_id, delete_pic, {
+    const updated_user = await User.findByIdAndUpdate(user._id, delete_pic, {
       new: true,
     }).select("-password");
 
     return res.status(200).json({
       message: "Profile picture deleted successfully.",
-      user: updatedUser,
+      user: updated_user,
     });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error." });
@@ -196,8 +201,7 @@ const update_profile_info = async (req, res) => {
         .status(400)
         .json({ message: "Name must be 3 - 30 characters." });
     }
-    const full_name_regex =
-      /^[\p{L}\p{N}' \-\p{Emoji}\p{Emoji_Component}]+$/u;
+    const full_name_regex = /^[\p{L}\p{N}' \-\p{Emoji}\p{Emoji_Component}]+$/u;
     if (!full_name_regex.test(processed_full_name)) {
       return res.status(400).json({ message: "Invalid name format." });
     }

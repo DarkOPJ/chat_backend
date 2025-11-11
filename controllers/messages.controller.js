@@ -2,6 +2,19 @@ import mongoose from "mongoose";
 import Message from "../models/Message.model.js";
 import User from "../models/User.js";
 import cloudinary from "../lib/cloudinary.js";
+import { fileTypeFromBuffer } from "file-type";
+import sharp from "sharp";
+import {
+  estimateBase64Size,
+  parseDataUri,
+  decodeBase64,
+  uploadToCloudinary,
+} from "../lib/utils.js";
+
+// Image property constants
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB.
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
+const MAX_DIMENSION = 4096; // max width/height.
 
 const get_all_contacts = async (req, res) => {
   try {
@@ -102,6 +115,7 @@ const send_message = async (req, res) => {
     const logged_in_user = req.user._id;
     const chat_partner_id = req.params.id;
     const { text, image } = req.body;
+    let sent_message = null;
 
     if (!chat_partner_id) {
       return res.status(400).json({ message: "Invalid user provided." });
@@ -116,8 +130,6 @@ const send_message = async (req, res) => {
     }
 
     const processed_text = typeof text === "string" ? text.trim() : "";
-    let uploaded_image;
-    let image_url;
 
     if (!processed_text && !image) {
       return res
@@ -126,16 +138,110 @@ const send_message = async (req, res) => {
     }
 
     if (image) {
-      uploaded_image = await cloudinary.uploader.upload(image);
-      image_url = uploaded_image.secure_url;
-    }
+      // Validation of Image.
+      // Parse data URI
+      let parsedData;
+      try {
+        parsedData = parseDataUri(image);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "There was an error parsing the image." });
+      }
 
-    const sent_message = await Message.create({
-      sender_id: logged_in_user,
-      receiver_id: chat_partner_id,
-      text: processed_text,
-      image: image_url,
-    });
+      // Check estimated size before decoding
+      const estimatedSize = estimateBase64Size(parsedData.base64Data);
+      if (estimatedSize > MAX_FILE_SIZE) {
+        return res.status(413).json({
+          message: `File too large. Maximum size is ${
+            MAX_FILE_SIZE / (1024 * 1024)
+          }MB`,
+        });
+      }
+
+      // Decode base64 to buffer
+      let buffer;
+      try {
+        buffer = decodeBase64(parsedData.base64Data);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "There was an error decoding image." });
+      }
+
+      // Verify actual buffer size
+      if (buffer.length > MAX_FILE_SIZE) {
+        return res.status(413).json({
+          message: `File too large. Maximum size is ${
+            MAX_FILE_SIZE / (1024 * 1024)
+          }MB`,
+        });
+      }
+
+      // Detect actual mime type from buffer
+      const fileType = await fileTypeFromBuffer(buffer);
+      const detectedMime = fileType?.mime || parsedData.declaredMime;
+
+      if (!detectedMime || !ALLOWED_TYPES.includes(detectedMime)) {
+        return res.status(415).json({
+          message:
+            "Unsupported file type. Only PNG and JPEG images are allowed.",
+        });
+      }
+
+      // Validate image with sharp and get metadata
+      let metadata;
+      try {
+        metadata = await sharp(buffer).metadata();
+      } catch (error) {
+        console.error("Sharp metadata error:", error);
+        return res.status(400).json({
+          message: "Invalid or corrupted image file.",
+        });
+      }
+      if (!metadata?.width || !metadata?.height) {
+        return res.status(400).json({
+          message: "Could not determine image dimensions.",
+        });
+      }
+      if (metadata.width > MAX_DIMENSION || metadata.height > MAX_DIMENSION) {
+        return res.status(413).json({
+          message: `Image dimensions too large. Maximum is ${MAX_DIMENSION}x${MAX_DIMENSION}px.`,
+        });
+      }
+
+      let uploadResult;
+      try {
+        uploadResult = await uploadToCloudinary(buffer, {
+          folder: "telejam_uploads",
+          public_id: `user_${logged_in_user}_image_upload_${Date.now()}`, // Unique identifier
+          transformation: [
+            { width: 4096, crop: "limit" },
+            { quality: "auto:best" },
+            { fetch_format: "auto" },
+          ],
+        });
+      } catch (error) {
+        console.error("Upload error:", error);
+        return res.status(502).json({
+          message: "Failed to upload image. Please try again",
+        });
+      }
+
+      sent_message = await Message.create({
+        sender_id: logged_in_user,
+        receiver_id: chat_partner_id,
+        text: processed_text,
+        image: uploadResult.secure_url,
+        image_public_id: uploadResult.public_id,
+      });
+    } else {
+      sent_message = await Message.create({
+        sender_id: logged_in_user,
+        receiver_id: chat_partner_id,
+        text: processed_text,
+      });
+    }
 
     return res.status(201).json(sent_message);
     // TODO: Use socket to show the message immediately to the receipient
