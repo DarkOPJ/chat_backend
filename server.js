@@ -23,7 +23,7 @@ app.use(
   })
 );
 app.use(cookieParser());
-app.use(express.json()); // for collecting the request's body (req.body) of requests that come in that are formatted in JSON
+app.use(express.json({ limit: "5mb" })); // for collecting the request's body (req.body) of requests that come in that are formatted in JSON
 // if (ENV.NODE_ENV !== "development") {
 // }
 

@@ -12,10 +12,12 @@ const Message_Schema = new mongoose.Schema(
     },
     text: {
       type: String,
-      minlength: 1,
       maxlength: 2000,
     },
     image: {
+      type: String,
+    },
+    image_public_id: {
       type: String,
     },
   },
