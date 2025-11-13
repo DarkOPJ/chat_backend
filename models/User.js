@@ -38,6 +38,10 @@ const User_Schema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    last_seen: {
+      type: Date,
+      default: Date.now,
+    },
   },
   {
     timestamps: true,

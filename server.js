@@ -12,13 +12,21 @@ import ENV from "./lib/env.js";
 // Database imports
 import connectDB from "./lib/db.js";
 
-const app = express();
+// socket server imports
+import { app, server } from "./socket.js";
+
+// This was here before
+// const app = express();
 
 // Middleware
 app.set("trust proxy", 1); // for getting the right ip the request is coming from.. mostly for rate limiting
 app.use(
   cors({
-    origin: ["http://localhost:4000", "http://192.168.100.88:4000"], // must be explicit, no '*'
+    origin: [
+      "http://localhost:4000",
+      "http://192.168.100.88:4000",
+      "http://localhost:4173",
+    ], // must be explicit, no '*'
     credentials: true, // must match axios withCredentials:true
   })
 );
@@ -37,6 +45,12 @@ const PORT = ENV.PORT || 3000;
 
 connectDB();
 
-app.listen(PORT, () => {
+// Normal http server listening
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
+
+// Socket server listening
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
