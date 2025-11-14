@@ -10,8 +10,7 @@ const User_Schema = new mongoose.Schema(
     },
     username: {
       type: String,
-      // TODO
-      // unique: true,
+      unique: true,
       sparse: true,
       maxlength: 16,
     },
