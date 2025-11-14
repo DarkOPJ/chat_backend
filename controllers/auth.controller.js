@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import ENV from "../lib/env.js";
 import { generate_and_send_jwt } from "../lib/utils.js";
 import { send_welcome_email } from "../emails/email_handlers.js";
+import generate_random_username from "../lib/generate_random_username.js";
 
 const check_name_and_email = async (req, res) => {
   const { full_name, email } = req.body;
@@ -99,13 +100,17 @@ const signup = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashed_password = await bcrypt.hash(processed_password, salt);
 
+    let username = generate_random_username();
+    while (await User.findOne({ username })) {
+      username = generate_random_username();
+    }
+
     const new_user = await User.create({
       full_name: processed_full_name,
       email: processed_email,
+      username: username,
       password: hashed_password,
     });
-
-    
 
     if (new_user) {
       generate_and_send_jwt(new_user._id, res);
@@ -125,6 +130,7 @@ const signup = async (req, res) => {
         _id: new_user._id,
         full_name: new_user.full_name,
         email: new_user.email,
+        username: new_user.username,
         profile_pic: new_user.profile_pic,
       });
     } else {
