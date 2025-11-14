@@ -4,3 +4,4 @@ something_to_remember.txt
 .history
 .gitignore
 .DS_Store
+vercel.json

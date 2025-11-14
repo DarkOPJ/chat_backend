@@ -12,7 +12,6 @@ const User_Schema = new mongoose.Schema(
       type: String,
       // TODO
       // unique: true,
-      default: "",
       sparse: true,
       maxlength: 16,
     },

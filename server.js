@@ -22,18 +22,12 @@ import { app, server } from "./socket.js";
 app.set("trust proxy", 1); // for getting the right ip the request is coming from.. mostly for rate limiting
 app.use(
   cors({
-    origin: [
-      "http://localhost:4000",
-      "http://192.168.100.88:4000",
-      "http://localhost:4173",
-    ], // must be explicit, no '*'
+    origin: ["http://localhost:4173", ENV.CLIENT_URL], // must be explicit, no '*'
     credentials: true, // must match axios withCredentials:true
   })
 );
 app.use(cookieParser());
 app.use(express.json({ limit: "5mb" })); // for collecting the request's body (req.body) of requests that come in that are formatted in JSON
-// if (ENV.NODE_ENV !== "development") {
-// }
 
 // Routes or views
 app.use("/", normal_router);

@@ -105,6 +105,8 @@ const signup = async (req, res) => {
       password: hashed_password,
     });
 
+    
+
     if (new_user) {
       generate_and_send_jwt(new_user._id, res);
 

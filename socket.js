@@ -8,7 +8,7 @@ import User from "./models/User.js";
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: [ENV.CLIENT_URL], credentials: true },
+  cors: { origin: [ENV.CLIENT_URL, "http://localhost:4173"], credentials: true },
 });
 
 // Authentication middleware for socket connections.
