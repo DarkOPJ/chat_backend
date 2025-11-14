@@ -12,7 +12,6 @@ const User_Schema = new mongoose.Schema(
       type: String,
       // TODO
       // unique: true,
-      default: "",
       sparse: true,
       maxlength: 16,
     },
@@ -37,6 +36,10 @@ const User_Schema = new mongoose.Schema(
     profile_pic_public_id: {
       type: String,
       default: "",
+    },
+    last_seen: {
+      type: Date,
+      default: Date.now,
     },
   },
   {

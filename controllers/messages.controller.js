@@ -1,7 +1,5 @@
-import mongoose from "mongoose";
 import Message from "../models/Message.model.js";
 import User from "../models/User.js";
-import cloudinary from "../lib/cloudinary.js";
 import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
 import {
@@ -10,6 +8,7 @@ import {
   decodeBase64,
   uploadToCloudinary,
 } from "../lib/utils.js";
+import { get_receiver_socket_id, io } from "../socket.js";
 
 // Image property constants
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB.
@@ -243,8 +242,13 @@ const send_message = async (req, res) => {
       });
     }
 
+    // Use socket to show the message immediately to the receipient
+    const receiver_socket_id = get_receiver_socket_id(chat_partner_id);
+    if (receiver_socket_id) {
+      io.to(receiver_socket_id).emit("sent_message", sent_message);
+    }
+
     return res.status(201).json(sent_message);
-    // TODO: Use socket to show the message immediately to the receipient
   } catch (error) {
     console.log("There was an error with the Send message controller: ", error);
     res.status(500).json({ message: "Internal server error." });
