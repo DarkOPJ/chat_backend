@@ -248,7 +248,7 @@ const login = async (req, res) => {
 
 const logout = (req, res) => {
   const cookie_options = {
-    sameSite: "strict",
+    sameSite: "none",
     httpOnly: true,
     secure: ENV.NODE_ENV !== "development",
   };
