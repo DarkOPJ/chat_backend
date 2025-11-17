@@ -22,7 +22,7 @@ import { app, server } from "./socket.js";
 app.set("trust proxy", 1); // for getting the right ip the request is coming from.. mostly for rate limiting
 app.use(
   cors({
-    origin: ["http://localhost:4173", ENV.CLIENT_URL], // must be explicit, no '*'
+    origin: ["http://localhost:4000", "http://localhost:4173", ENV.CLIENT_URL], // must be explicit, no '*'
     credentials: true, // must match axios withCredentials:true
   })
 );

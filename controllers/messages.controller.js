@@ -9,6 +9,7 @@ import {
   uploadToCloudinary,
 } from "../lib/utils.js";
 import { get_receiver_socket_id, io } from "../socket.js";
+import Conversation from "../models/Conversations.model.js";
 
 // Image property constants
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB.
@@ -50,24 +51,28 @@ const get_all_contacts = async (req, res) => {
 const get_all_user_chats = async (req, res) => {
   try {
     const user_id = req.user._id;
-    const filtered_chats = await Message.find({
-      $or: [{ sender_id: user_id }, { receiver_id: user_id }],
-    }).select("-password");
 
-    const chats = [
-      ...new Set(
-        filtered_chats.map((chat) =>
-          chat.sender_id.toString() === user_id.toString()
-            ? chat.receiver_id.toString()
-            : chat.sender_id.toString()
-        )
-      ),
-    ];
+    const conversations = await Conversation.find({
+      participants: user_id,
+    })
+      .populate("participants", "-password -profile_pic_public_id")
+      .sort({ updatedAt: -1 }); // Most recent first
 
-    const user_chat_partners = await User.find({
-      _id: { $in: chats },
-    }).select("-password -profile_pic_public_id");
-    return res.status(200).json(user_chat_partners);
+    // Filter out the current user from participants to get chat partners
+    const formatted_conversations = conversations.map((conv) => {
+      const partner = conv.participants.find(
+        (p) => p._id.toString() !== user_id.toString()
+      );
+
+      return {
+        _id: conv._id,
+        partner: partner,
+        last_message: conv.last_message,
+        updated_at: conv.updatedAt,
+      };
+    });
+
+    return res.status(200).json(formatted_conversations);
   } catch (error) {
     console.log(
       "There was an error with the Get all user chats controller: ",
@@ -114,7 +119,7 @@ const send_message = async (req, res) => {
     const logged_in_user = req.user._id;
     const chat_partner_id = req.params.id;
     const { text, image } = req.body;
-    let sent_message = null;
+    let uploadResult;
 
     if (!chat_partner_id) {
       return res.status(400).json({ message: "Invalid user provided." });
@@ -209,7 +214,6 @@ const send_message = async (req, res) => {
         });
       }
 
-      let uploadResult;
       try {
         uploadResult = await uploadToCloudinary(buffer, {
           folder: "telejam_uploads",
@@ -226,29 +230,53 @@ const send_message = async (req, res) => {
           message: "Failed to upload image. Please try again",
         });
       }
+    }
 
-      sent_message = await Message.create({
-        sender_id: logged_in_user,
-        receiver_id: chat_partner_id,
-        text: processed_text,
-        image: uploadResult.secure_url,
-        image_public_id: uploadResult.public_id,
-      });
+    const sent_message = await Message.create({
+      sender_id: logged_in_user,
+      receiver_id: chat_partner_id,
+      text: processed_text,
+      image: image ? uploadResult.secure_url : null,
+      image_public_id: image ? uploadResult.public_id : null,
+    });
+
+    // Find existing conversation
+    let conversation = await Conversation.findOne({
+      participants: { $all: [logged_in_user, chat_partner_id] },
+    });
+
+    if (conversation) {
+      // Update existing conversation
+      conversation.last_message = {
+        sender_id: sent_message.sender_id,
+        text: sent_message.text,
+        image: sent_message.image,
+        createdAt: sent_message.createdAt,
+      };
+      await conversation.save();
     } else {
-      sent_message = await Message.create({
-        sender_id: logged_in_user,
-        receiver_id: chat_partner_id,
-        text: processed_text,
+      // Create new conversation
+      conversation = await Conversation.create({
+        participants: [logged_in_user, chat_partner_id],
+        last_message: {
+          sender_id: sent_message.sender_id,
+          text: sent_message.text,
+          image: sent_message.image,
+          createdAt: sent_message.createdAt,
+        },
       });
     }
 
     // Use socket to show the message immediately to the receipient
     const receiver_socket_id = get_receiver_socket_id(chat_partner_id);
     if (receiver_socket_id) {
-      io.to(receiver_socket_id).emit("sent_message", sent_message);
+      io.to(receiver_socket_id).emit("sent_message", {
+        sent_message,
+        conversation,
+      });
     }
 
-    return res.status(201).json(sent_message);
+    return res.status(201).json({ sent_message, conversation });
   } catch (error) {
     console.log("There was an error with the Send message controller: ", error);
     res.status(500).json({ message: "Internal server error." });
