@@ -4,6 +4,8 @@ import ENV from "../lib/env.js";
 import { generate_and_send_jwt } from "../lib/utils.js";
 import { send_welcome_email } from "../emails/email_handlers.js";
 import generate_random_username from "../lib/generate_random_username.js";
+import Conversation from "../models/Conversations.model.js";
+import Message from "../models/Message.model.js";
 
 const check_name_and_email = async (req, res) => {
   const { full_name, email } = req.body;
@@ -110,6 +112,25 @@ const signup = async (req, res) => {
       email: processed_email,
       username: username,
       password: hashed_password,
+    });
+    // Create GPT conversation
+    const AI_USER_ID = ENV.AI_USER_ID;
+    await Conversation.create({
+      participants: [new_user._id, AI_USER_ID],
+      last_message: {
+        sender_id: AI_USER_ID,
+        text: `Heyyy ${full_name}.. I'm Orion, Telejam's AI.. let's chat😉`,
+        image: null,
+        createdAt: new Date(),
+      },
+    });
+    // Create and store GPT message
+    await Message.create({
+      sender_id: AI_USER_ID,
+      receiver_id: new_user._id,
+      text: `Heyyy ${full_name}.. I'm Orion, Telejam's AI.. let's chat😉`,
+      image: null,
+      image_public_id: null,
     });
 
     if (new_user) {
@@ -248,7 +269,7 @@ const login = async (req, res) => {
 
 const logout = (req, res) => {
   const cookie_options = {
-    sameSite: "none",
+    sameSite: ENV.NODE_ENV === "development" ? "strict" : "none",
     httpOnly: true,
     secure: ENV.NODE_ENV !== "development",
   };
