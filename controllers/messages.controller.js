@@ -334,9 +334,22 @@ const send_message = async (req, res) => {
         image: sent_message.image,
         createdAt: sent_message.createdAt,
       };
+
+      // Increment unread count for receiver
+      const current_count =
+        conversation.unread_count.get(chat_partner_id.toString()) || 0;
+      conversation.unread_count.set(
+        chat_partner_id.toString(),
+        current_count + 1
+      );
+
       await conversation.save();
     } else {
       // Create new conversation
+      const unread_map = new Map();
+      unread_map.set(chat_partner_id.toString(), 1); // Receiver has 1 unread
+      unread_map.set(logged_in_user.toString(), 0); // Sender has 0 unread
+
       conversation = await Conversation.create({
         participants: [logged_in_user, chat_partner_id],
         last_message: {
@@ -345,15 +358,25 @@ const send_message = async (req, res) => {
           image: sent_message.image,
           createdAt: sent_message.createdAt,
         },
+        unread_count: unread_map,
       });
     }
 
     // Use socket to show the message immediately to the receipient
     const receiver_socket_id = get_receiver_socket_id(chat_partner_id);
+
     if (receiver_socket_id) {
-      io.to(receiver_socket_id).emit("sent_message", {
+      // For notifications (chat closed)
+      io.to(receiver_socket_id).emit("new_message", {
         sent_message,
         conversation,
+        sender: req.user,
+      });
+
+      // For live chat (chat open) - mark as read
+      io.to(receiver_socket_id).emit("sent_message", {
+        // sent_message: sent_message,
+        sent_message: { ...sent_message.toObject(), is_read: true },
       });
     }
 
@@ -364,9 +387,53 @@ const send_message = async (req, res) => {
   }
 };
 
+const mark_messages_as_read = async (req, res) => {
+  try {
+    const user_id = req.user._id;
+    const { id: conversation_id } = req.params;
+
+    const conversation = await Conversation.findById(conversation_id);
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    const sender_id = conversation.participants.find(
+      (p) => p.toString() !== user_id.toString()
+    );
+
+    await Conversation.findByIdAndUpdate(conversation_id, {
+      $set: { [`unread_count.${user_id}`]: 0 },
+    });
+
+    await Message.updateMany(
+      {
+        receiver_id: user_id,
+        sender_id: sender_id,
+        is_read: false,
+      },
+      { $set: { is_read: true } }
+    );
+
+    // Emit to sender that messages were read
+    const sender_socket_id = get_receiver_socket_id(sender_id);
+    if (sender_socket_id) {
+      io.to(sender_socket_id).emit("messages_marked_as_read", {
+        conversation_id: conversation_id,
+        reader_id: user_id,
+      });
+    }
+
+    res.status(200).json({ message: "Marked as read" });
+  } catch (error) {
+    console.error("Mark as read error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export {
   get_all_contacts,
   get_all_user_chats,
   get_messages_by_id,
   send_message,
+  mark_messages_as_read,
 };
