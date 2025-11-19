@@ -26,6 +26,7 @@
     "file-type": "^21.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
+    "openai": "^6.9.1",
     "resend": "^6.2.0",
     "sharp": "^0.34.4",
     "socket.io": "^4.8.1",

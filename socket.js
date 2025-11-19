@@ -35,7 +35,9 @@ io.on("connection", (socket) => {
 
   // Send an event to all clients using io.emit().
   // It takes an event name, and whatever you want to send to the clients.
-  io.emit("get_all_online_users", Object.keys(user_socket_map));
+  // Always include AI in online users
+  const online_user_ids = [...Object.keys(user_socket_map), ENV.AI_USER_ID];
+  io.emit("get_all_online_users", online_user_ids);
 
   // Listen for events from a connected client with socket.on().
   // It takes an event name and callback function.
@@ -53,7 +55,9 @@ io.on("connection", (socket) => {
       console.error("Failed to update last_seen:", error);
     }
 
-    io.emit("get_all_online_users", Object.keys(user_socket_map));
+    // Always include AI in online users
+    const online_user_ids = [...Object.keys(user_socket_map), ENV.AI_USER_ID];
+    io.emit("get_all_online_users", online_user_ids);
   });
 });
 

@@ -10,6 +10,11 @@ import {
 } from "../lib/utils.js";
 import { get_receiver_socket_id, io } from "../socket.js";
 import Conversation from "../models/Conversations.model.js";
+import {
+  build_ai_context,
+  is_ai_user,
+  stream_ai_response,
+} from "../lib/ai_utils.js";
 
 // Image property constants
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB.
@@ -141,8 +146,8 @@ const send_message = async (req, res) => {
         .json({ message: "Message must contain text or image." });
     }
 
+    // Validating the image.
     if (image) {
-      // Validation of Image.
       // Parse data URI
       let parsedData;
       try {
@@ -230,6 +235,82 @@ const send_message = async (req, res) => {
           message: "Failed to upload image. Please try again",
         });
       }
+    }
+
+    const is_ai_chat = await is_ai_user(chat_partner_id);
+
+    if (is_ai_chat) {
+      // Save user message
+      const user_message = await Message.create({
+        sender_id: logged_in_user,
+        receiver_id: chat_partner_id,
+        text: processed_text,
+        image: image ? uploadResult.secure_url : null,
+        image_public_id: image ? uploadResult.public_id : null,
+      });
+
+      // Create/update conversation with user's message first
+      let conversation = await Conversation.findOneAndUpdate(
+        { participants: { $all: [logged_in_user, chat_partner_id] } },
+        {
+          $set: {
+            last_message: {
+              sender_id: user_message.sender_id,
+              text: user_message.text,
+              image: user_message.image,
+              createdAt: user_message.createdAt,
+            },
+          },
+          $setOnInsert: {
+            participants: [logged_in_user, chat_partner_id],
+          },
+        },
+        { upsert: true, new: true }
+      );
+
+      // Get conversation history
+      const context = await build_ai_context(logged_in_user, chat_partner_id);
+
+      // Get user's socket
+      const user_socket_id = get_receiver_socket_id(logged_in_user);
+      const user_socket = io.sockets.sockets.get(user_socket_id);
+
+      // Stream AI response in background
+      stream_ai_response(
+        user_message.text,
+        // user_message.image, // Pass image URL for vision
+        context,
+        logged_in_user,
+        chat_partner_id,
+        user_socket
+      ).then(async (ai_message) => {
+        // Update conversation with AI's message
+        conversation = await Conversation.findOneAndUpdate(
+          { participants: { $all: [logged_in_user, chat_partner_id] } },
+          {
+            $set: {
+              last_message: {
+                sender_id: ai_message.sender_id,
+                text: ai_message.text,
+                image: ai_message.image,
+                createdAt: ai_message.createdAt,
+              },
+            },
+          },
+          { new: true }
+        );
+
+        // Emit completion
+        if (user_socket) {
+          user_socket.emit("ai_message_complete", {
+            final_message: ai_message,
+            conversation: conversation,
+          });
+        }
+      });
+
+      // Return immediately with user's message
+      return res.status(201).json({ sent_message: user_message, conversation });
     }
 
     const sent_message = await Message.create({
