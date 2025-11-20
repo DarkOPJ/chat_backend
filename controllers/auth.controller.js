@@ -125,7 +125,7 @@ const signup = async (req, res) => {
       participants: [new_user._id, AI_USER_ID],
       last_message: {
         sender_id: AI_USER_ID,
-        text: `Heyyy ${full_name}.. I'm Orion, Telejam's AI.. let's chat😉`,
+        text: `Heyyy ${full_name}..\nI'm Orion, Telejam's AI..\nLet's chat😉`,
         image: null,
         createdAt: new Date(),
       },
@@ -134,7 +134,7 @@ const signup = async (req, res) => {
     await Message.create({
       sender_id: AI_USER_ID,
       receiver_id: new_user._id,
-      text: `Heyyy ${full_name}.. I'm Orion, Telejam's AI.. let's chat😉`,
+      text: `Heyyy ${full_name}..\nI'm Orion, Telejam's AI..\nLet's chat😉`,
       image: null,
       image_public_id: null,
     });
