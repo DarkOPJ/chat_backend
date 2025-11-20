@@ -27,6 +27,11 @@ const Conversation_Schema = new mongoose.Schema(
         default: Date.now,
       },
     },
+    unread_count: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
   },
   {
     timestamps: true,

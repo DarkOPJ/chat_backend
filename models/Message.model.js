@@ -20,6 +20,14 @@ const Message_Schema = new mongoose.Schema(
     image_public_id: {
       type: String,
     },
+    is_ai_message: {
+      type: Boolean,
+      default: false,
+    },
+    is_read: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
