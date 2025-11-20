@@ -74,6 +74,7 @@ const get_all_user_chats = async (req, res) => {
         partner: partner,
         last_message: conv.last_message,
         updated_at: conv.updatedAt,
+        unread_count: conv.unread_count.get(user_id.toString()) || 0, 
       };
     });
 
