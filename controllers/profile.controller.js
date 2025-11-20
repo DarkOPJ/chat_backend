@@ -196,10 +196,10 @@ const update_profile_info = async (req, res) => {
     if (!processed_full_name) {
       return res.status(400).json({ message: "Name is required." });
     }
-    if (processed_full_name.length < 3 || processed_full_name.length > 30) {
+    if (processed_full_name.length < 3 || processed_full_name.length > 20) {
       return res
         .status(400)
-        .json({ message: "Name must be 3 - 30 characters." });
+        .json({ message: "Name must be 3 - 20 characters." });
     }
     const full_name_regex = /^[\p{L}\p{N}' \-\p{Emoji}\p{Emoji_Component}]+$/u;
     if (!full_name_regex.test(processed_full_name)) {

@@ -72,11 +72,11 @@ const signup = async (req, res) => {
     if (!full_name_regex.test(processed_full_name)) {
       return res.status(400).json({ message: "Invalid name format." });
     }
-    const full_name_length_regex = /^.{3,26}$/;
+    const full_name_length_regex = /^.{3,20}$/;
     if (!full_name_length_regex.test(processed_full_name)) {
       return res
         .status(400)
-        .json({ message: "Full name must be 3-16 characters long." });
+        .json({ message: "Name must be 3-20 characters long." });
     }
 
     const email_regex =
