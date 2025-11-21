@@ -278,8 +278,7 @@ const send_message = async (req, res) => {
 
       // Stream AI response in background
       stream_ai_response(
-        user_message.text,
-        // user_message.image, // Pass image URL for vision
+        user_message,
         context,
         logged_in_user,
         chat_partner_id,

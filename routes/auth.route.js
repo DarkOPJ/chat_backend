@@ -25,7 +25,7 @@ router.post("/login_check", login_rate_limit, check_email);
 router.post("/login", login_rate_limit, login);
 
 // Google login
-router.post("/google", google_auth);
+router.post("/google", login_rate_limit, google_auth);
 
 // Logout page
 router.post("/logout", logout);
