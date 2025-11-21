@@ -40,6 +40,10 @@ const User_Schema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    is_oauth: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

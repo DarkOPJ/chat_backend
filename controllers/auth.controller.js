@@ -6,6 +6,7 @@ import { send_welcome_email } from "../emails/email_handlers.js";
 import generate_random_username from "../lib/generate_random_username.js";
 import Conversation from "../models/Conversations.model.js";
 import Message from "../models/Message.model.js";
+import { getGoogleUser } from "../lib/googleAuth.js";
 
 const check_name_and_email = async (req, res) => {
   const { full_name, email } = req.body;
@@ -273,6 +274,85 @@ const login = async (req, res) => {
   }
 };
 
+const google_auth = async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ message: "Could not login with Google." });
+    }
+
+    // Get Google user info
+    const googleUser = await getGoogleUser(code);
+
+    if (!googleUser.email) {
+      return res.status(400).json({ message: "Could not login with Google." });
+    }
+
+    // Find or create user
+    let user = await User.findOne({ email: googleUser.email });
+
+    if (!user) {
+      // Create new user
+      let username = generate_random_username();
+      while (await User.findOne({ username })) {
+        username = generate_random_username();
+      }
+
+      user = await User.create({
+        full_name: googleUser.name.split(" ")[0] || "User",
+        email: googleUser.email,
+        username: username, // Use email prefix as username
+        password: "oauth_no_password", // Google auth users don't have passwords
+        profile_pic: null,
+        is_oauth: true,
+      });
+
+      // Create AI conversation for new user
+      const AI_USER_ID = ENV.AI_USER_ID;
+      await Conversation.create({
+        participants: [user._id, AI_USER_ID],
+        last_message: {
+          sender_id: AI_USER_ID,
+          text: `Heyyy ${user.full_name}..\nI'm Orion, Telejam's AI..\nLet's chat😉`,
+          image: null,
+          createdAt: new Date(),
+        },
+      });
+      // Create and store GPT message
+      await Message.create({
+        sender_id: AI_USER_ID,
+        receiver_id: user._id,
+        text: `Heyyy ${user.full_name}..\nI'm Orion, Telejam's AI..\nLet's chat😉`,
+        image: null,
+        image_public_id: null,
+      });
+    } else if (!user.is_oauth) {
+      // Update to enable OAuth
+      user.is_oauth = true;
+      await user.save();
+    }
+
+    // Generate token
+    generate_and_send_jwt(user._id, res);
+
+    return res.status(200).json({
+      success: true,
+      _id: user._id,
+      full_name: user.full_name,
+      email: user.email,
+      username: user.username,
+      profile_pic: user.profile_pic,
+    });
+  } catch (error) {
+    console.log(
+      "Something went wrong with the Google Oauth controller: ",
+      error
+    );
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 const logout = (req, res) => {
   const cookie_options = {
     sameSite: ENV.NODE_ENV === "development" ? "strict" : "none",
@@ -287,4 +367,12 @@ const auth_check = (req, res) => {
   return res.status(200).json(req.user);
 };
 
-export { check_name_and_email, signup, check_email, login, logout, auth_check };
+export {
+  check_name_and_email,
+  signup,
+  check_email,
+  login,
+  google_auth,
+  logout,
+  auth_check,
+};
