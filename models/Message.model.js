@@ -20,6 +20,12 @@ const Message_Schema = new mongoose.Schema(
     image_public_id: {
       type: String,
     },
+    audio: {
+      type: String,
+    },
+    audio_public_id: {
+      type: String,
+    },
     is_ai_message: {
       type: Boolean,
       default: false,

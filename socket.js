@@ -39,6 +39,17 @@ io.on("connection", (socket) => {
   const online_user_ids = [...Object.keys(user_socket_map), ENV.AI_USER_ID];
   io.emit("get_all_online_users", online_user_ids);
 
+  // Add typing listener here
+  socket.on("user_typing", (data) => {
+    const receiver_socket_id = get_receiver_socket_id(data.to);
+    if (receiver_socket_id) {
+      io.to(receiver_socket_id).emit("user_typing", {
+        from: socket.user_id,
+        is_typing: data.is_typing,
+      });
+    }
+  });
+
   // Listen for events from a connected client with socket.on().
   // It takes an event name and callback function.
   // We used io.on() to listen for socket connection itself. Now that we have the socket connection we listen for events on that connection.
