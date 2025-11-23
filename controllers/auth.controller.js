@@ -144,15 +144,15 @@ const signup = async (req, res) => {
       generate_and_send_jwt(new_user._id, res);
 
       //   TODO: Send a welcome email to the user
-      // try {
-      //   await send_welcome_email(
-      //     new_user.email,
-      //     new_user.full_name,
-      //     ENV.CLIENT_URL
-      //   );
-      // } catch (error) {
-      //   console.log("There was an error sending the email: ", error);
-      // }
+      try {
+        await send_welcome_email(
+          new_user.email,
+          new_user.full_name,
+          ENV.CLIENT_URL
+        );
+      } catch (error) {
+        console.log("There was an error sending the email: ", error);
+      }
 
       return res.status(201).json({
         _id: new_user._id,
@@ -353,9 +353,9 @@ const google_auth = async (req, res) => {
   }
 };
 
-const logout = (req, res) => {
+const logout = (_, res) => {
   const cookie_options = {
-    sameSite: ENV.NODE_ENV === "development" ? "strict" : "none",
+    sameSite: "strict",
     httpOnly: true,
     secure: ENV.NODE_ENV !== "development",
   };

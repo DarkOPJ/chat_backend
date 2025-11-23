@@ -20,7 +20,7 @@ import {
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB.
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
 const MAX_DIMENSION = 4096; // max width/height.
-const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_AUDIO_SIZE = 8 * 1024 * 1024; // 10MB
 
 const get_all_contacts = async (req, res) => {
   try {
