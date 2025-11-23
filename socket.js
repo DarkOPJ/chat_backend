@@ -43,6 +43,7 @@ io.on("connection", (socket) => {
   socket.on("user_typing", (data) => {
     const receiver_socket_id = get_receiver_socket_id(data.to);
     if (receiver_socket_id) {
+      // console.log("typing socket")
       io.to(receiver_socket_id).emit("user_typing", {
         from: socket.user_id,
         is_typing: data.is_typing,
