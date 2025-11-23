@@ -27,7 +27,7 @@ app.use(
   })
 );
 app.use(cookieParser());
-app.use(express.json({ limit: "15mb" })); // for collecting the request's body (req.body) of requests that come in that are formatted in JSON
+app.use(express.json({ limit: "10mb" })); // for collecting the request's body (req.body) of requests that come in that are formatted in JSON
 
 // Routes or views
 app.use("/", normal_router);
@@ -36,6 +36,15 @@ app.use("/api/profile", profile_router);
 app.use("/api/messages", message_router);
 
 const PORT = ENV.PORT || 3000;
+
+// make ready for deployment. Let the backend server serve the frontend app.
+if (ENV.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+  app.get("*", (_, res) => {
+    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+  });
+}
 
 connectDB();
 
