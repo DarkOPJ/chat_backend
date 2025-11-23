@@ -22,6 +22,10 @@ const Conversation_Schema = new mongoose.Schema(
         type: String,
         default: null,
       },
+      audio: {
+        type: String,
+        default: null,
+      },
       createdAt: {
         type: Date,
         default: Date.now,

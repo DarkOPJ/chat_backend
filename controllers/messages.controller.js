@@ -20,6 +20,7 @@ import {
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB.
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
 const MAX_DIMENSION = 4096; // max width/height.
+const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB
 
 const get_all_contacts = async (req, res) => {
   try {
@@ -74,7 +75,7 @@ const get_all_user_chats = async (req, res) => {
         partner: partner,
         last_message: conv.last_message,
         updated_at: conv.updatedAt,
-        unread_count: conv.unread_count.get(user_id.toString()) || 0, 
+        unread_count: conv.unread_count.get(user_id.toString()) || 0,
       };
     });
 
@@ -124,7 +125,7 @@ const send_message = async (req, res) => {
   try {
     const logged_in_user = req.user._id;
     const chat_partner_id = req.params.id;
-    const { text, image } = req.body;
+    const { text, image, audio } = req.body;
     let uploadResult;
 
     if (!chat_partner_id) {
@@ -141,13 +142,13 @@ const send_message = async (req, res) => {
 
     const processed_text = typeof text === "string" ? text.trim() : "";
 
-    if (!processed_text && !image) {
+    if (!processed_text && !image && !audio) {
       return res
         .status(400)
-        .json({ message: "Message must contain text or image." });
+        .json({ message: "Message must contain text or image or voice note." });
     }
 
-    // Validating the image.
+    // Validate image.
     if (image) {
       // Parse data URI
       let parsedData;
@@ -238,8 +239,44 @@ const send_message = async (req, res) => {
       }
     }
 
-    const is_ai_chat = await is_ai_user(chat_partner_id);
+    // Validate audio
+    if (audio) {
+      let parsedData;
+      try {
+        parsedData = parseDataUri(audio);
+      } catch (error) {
+        return res.status(400).json({ message: "Invalid audio format" });
+      }
 
+      const estimatedSize = estimateBase64Size(parsedData.base64Data);
+
+      if (estimatedSize > MAX_AUDIO_SIZE) {
+        return res.status(413).json({
+          message: "Audio file too large. Maximum size is 10MB",
+        });
+      }
+
+      let buffer;
+      try {
+        buffer = decodeBase64(parsedData.base64Data);
+      } catch (error) {
+        return res.status(400).json({ message: "Error decoding audio" });
+      }
+
+      try {
+        uploadResult = await uploadToCloudinary(buffer, {
+          folder: "telejam_voice_notes",
+          resource_type: "video", // Audio uploads as video
+          public_id: `user_${logged_in_user}_audio_${Date.now()}`,
+          transformation: [{ format: "mp3" }, { audio_codec: "mp3" }],
+        });
+      } catch (error) {
+        return res.status(502).json({ message: "Failed to upload audio" });
+      }
+    }
+
+    // Check if chat is with AI
+    const is_ai_chat = await is_ai_user(chat_partner_id);
     if (is_ai_chat) {
       // Save user message
       const user_message = await Message.create({
@@ -316,9 +353,11 @@ const send_message = async (req, res) => {
     const sent_message = await Message.create({
       sender_id: logged_in_user,
       receiver_id: chat_partner_id,
-      text: processed_text,
+      text: processed_text || "",
       image: image ? uploadResult.secure_url : null,
       image_public_id: image ? uploadResult.public_id : null,
+      audio: audio ? uploadResult.secure_url : null,
+      audio_public_id: audio ? uploadResult.public_id : null,
     });
 
     // Find existing conversation
@@ -332,6 +371,7 @@ const send_message = async (req, res) => {
         sender_id: sent_message.sender_id,
         text: sent_message.text,
         image: sent_message.image,
+        audio: sent_message.audio,
         createdAt: sent_message.createdAt,
       };
 
@@ -356,6 +396,7 @@ const send_message = async (req, res) => {
           sender_id: sent_message.sender_id,
           text: sent_message.text,
           image: sent_message.image,
+          audio: sent_message.audio,
           createdAt: sent_message.createdAt,
         },
         unread_count: unread_map,
